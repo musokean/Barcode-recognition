@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner</title>
+</head>
+<body>
+    <h1>Barcode Scanner</h1>
+    <form id="uploadForm">
+        <label for="file">Upload Image (JPG, PNG, BMP, TIFF):</label>
+        <input type="file" id="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="message"></div>
+    <button id="downloadBtn" style="display: none;">Download Results</button>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('file', document.getElementById('file').files[0]);
+
+            const uploadResponse = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const uploadResult = await uploadResponse.json();
+            if (uploadResponse.ok) {
+                const decodeResponse = await fetch('/decode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: uploadResult.filename }),
+                });
+                const decodeResult = await decodeResponse.json();
+                if (decodeResponse.ok) {
+                    document.getElementById('message').innerText = JSON.stringify(decodeResult.barcodes, null, 2);
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.style.display = 'inline';
+                    downloadBtn.onclick = () => {
+                        window.location.href = decodeResult.download_url;
+                    };
+                } else {
+                    document.getElementById('message').innerText = decodeResult.error;
+                }
+            } else {
+                document.getElementById('message').innerText = uploadResult.error;
+            }
+        });
+    </script>
+</body>
+</html>
